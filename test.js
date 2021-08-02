@@ -1,5 +1,13 @@
-const adds = require('./adds/adds');
-
-for( i in adds.range(10,20)){
-    console.log(i)
+function test(i) {
+    console.log('start', i)
+    setTimeout(() => {
+        console.log('timeout')
+        console.log('end', i)
+        i--
+        if (i < 0) {
+            return
+        }
+        test(i)
+    }, 1000)
 }
+test(3);

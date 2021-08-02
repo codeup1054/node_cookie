@@ -3,10 +3,14 @@
 const path = require('path')
 const http = require('https'); // or 'https' for https:// URLs
 const fs = require('fs');
+const adds = require('./adds/adds');
+
+// const fs = require('graceful-fs');
+
+
 const strava_base_url = "https://heatmap-external-a.strava.com/tiles-auth/all/hot/";
 const querystring = require('querystring');
 
-const adds = require('./adds/adds');
 
 
 // const tile_param = {
@@ -14,48 +18,105 @@ const adds = require('./adds/adds');
 //     "hm_color":"hot"
 // }
 
+global.st = process.hrtime();
+global.fin = false;
+
+const htr = process.hrtime()
+const startTime = htr[0] * 1000000 + htr[1]
+
+
+
 const hm_param = {
     "z":15,
-    "x":19792,
-    "y":10255
+    "x":19650,
+    "y":10100
 }
 
-for(const  x in adds.range(19792,19800))
-{
-console.log(x)
-}
+let cnt = 1
+
+adds.range(hm_param.x,hm_param.x+300).forEach(x=>
+    {
+        var endTime = process.hrtime()
+
+        adds.range(hm_param.y,hm_param.y+300).forEach(y=>
+        {
+        hm_param.x = x
+        hm_param.y = y
+        getTiles(hm_param)
+        cnt ++
+        })
+
+    const htr = process.hrtime()
+    const currTime = htr[0] * 1000000 + htr[1]
+     // console.log(cnt,". x=",x,":",(currTime - startTime))
+    })
 
 // "$strava_url/$z/$x/$y.png?px=256&Signature=$Signature&Key-Pair-Id=$Key_Pair_Id&Policy=$Policy";
-const cookie = {
-    "Key-Pair-Id": "APKAIDPUN4QMG7VUQPSA",
-    "Policy": "eyJTdGF0ZW1lbnQiOiBbeyJSZXNvdXJjZSI6Imh0dHBzOi8vaGVhdG1hcC1leHRlcm5hbC0qLnN0cmF2YS5jb20vKiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyODE2ODg1Mn0sIkRhdGVHcmVhdGVyVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNjI2OTQ0ODUyfX19XX0_",
-    "Signature": "PKplNw49ZTcQt0Ra35uEOJKH82Z~O1ZSWS8jkDDaXExnRxTtax6YVqy09C-8Mv0kGbh7yI9RciHbrHmyJYu2MJFVrY3sOA6OsZesLbYkEY4Q9s5v5HWFLxtBWQJPWIVv7JeSB5f8KSy3XLSiABJCIiGoSK7NJgcWzEkQtRi74CmWk3u5518Cq6yMccAt7aAjd8fA-vN-jJ6sMEhZBlAQxrSrOg5ri5t8PDQzpnw2d9VRVS0ndugm6iaWtqxuNYIsbZf90nqO5--Ywip~Gghi41CRMu5v6t8WvNy-fHKikWKYasUtPAfFQgXvyDr5E7qIhNqlLXaVBmkdR5VyH-3Cxg__"
+// const strava_url = "https://heatmap-external-a.strava.com/tiles-auth/all/hot/15/19804/10235.png?v=19"
+
+
+ function getTiles(hm_param)  {
+
+    const hm_images_path =  "public/hm_images/";
+    const hm_file_name = hm_images_path + Object.values(hm_param).join('/') + '.png';
+
+     if (!fs.existsSync(hm_file_name)) {
+        stravaRequest(hm_param,hm_file_name);
+     }
+
 }
 
-const url_cookie = querystring.stringify(cookie);
-const url_hm_param = Object.values(hm_param).join('/');
+let delt = 0
+let c = 0
 
-const strava_url = strava_base_url+url_hm_param+'?'+url_cookie
+while (delt < 1000)
+{
+    const htr = process.hrtime()
+    const currTime = htr[0] * 1000000 + htr[1]
 
-// const strava_url = "https://heatmap-external-a.strava.com/tiles-auth/all/hot/15/19804/10235.png?v=19"
-// console.log("@@", strava_url, hm_param.values().join('_') )
+    delt = currTime-startTime
 
-const hm_images_path =  "hm_images/";
+    if ((c++ % 3000) == 1) {
+        console.log("delt=", delt);
+        adds.walk("hm_images", function (err, results) {
+            if (err) throw err;
+            console.log("files", results.length);
+        });
+    }
+}
 
-function getTiles(hm_param)  {
+function stravaRequest(hm_param,hm_file_name) {
 
-    const hm_file_name = hm_images_path + Object.values(hm_param).join('/') + '.png';
+    const cookie = {
+        "Key-Pair-Id": "APKAIDPUN4QMG7VUQPSA",
+        "Policy": "eyJTdGF0ZW1lbnQiOiBbeyJSZXNvdXJjZSI6Imh0dHBzOi8vaGVhdG1hcC1leHRlcm5hbC0qLnN0cmF2YS5jb20vKiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTYyODU5MTQ4N30sIkRhdGVHcmVhdGVyVGhhbiI6eyJBV1M6RXBvY2hUaW1lIjoxNjI3MzY3NDg3fX19XX0_",
+        "Signature": "Hzl5SEP7GWb6wHNC5gyynadyi6dE8aDhijyqiiq6f~7kL8SZGJ7ItJ4aJrLki5TYpzr3gx~y4IyoesWU5SN-90joHcUmMZAclgUqfwf31MV12rXXPOb7UGr~xrSmbK2sn~OfNl2qQ0wMpObmD3ZH9U8V87pFEG5CnRuF1e4KOrVMwEB8~3QTWAIslfGyiYQk-ut~20ECQDCzllY7-fGkYAprjHSlSfIh2wHP~xBY-ArpETbUopdxv6omRavMmd-iZHUxylnUnCWEm0ql25n7x0YhxV5-hmNkcW4TYxC7Db47AD3rOQfxJQJoqkGpL~HRDz-lHuvCqs-NlY~KYD5zfg__"
+    }
+
+    const url_cookie = querystring.stringify(cookie);
+    const url_hm_param = Object.values(hm_param).join('/');
+    const strava_url = strava_base_url+url_hm_param+'?'+url_cookie
+
 
     const hm_dir_name = path.dirname(hm_file_name);
 
-    console.log("@@", strava_url, '\n\n', hm_dir_name, '\n\n', hm_file_name);
-
-    fs.promises.mkdir(hm_dir_name, {recursive: true}).catch(console.error);
-
-    const file_pipe = fs.createWriteStream(hm_file_name);
+    global.fin = false
 
     const request = http.get(strava_url, function (response) {
-        response.pipe(file_pipe);
+        if (response.statusCode != 200) {
+            console.log('STATUS: ' + response.statusCode, hm_file_name);
+            global.fin = true
+        }
+        else {
+            fs.promises.mkdir(hm_dir_name, {recursive: true}).catch(console.error);
+            console.log(hm_dir_name)
+            const file_pipe = fs.createWriteStream(hm_file_name);
+            response.pipe(file_pipe);
+            global.fin = true
+             }
     });
-
 }
+
+
+adds.tm()
+
